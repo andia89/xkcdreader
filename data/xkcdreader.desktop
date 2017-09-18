@@ -1,0 +1,9 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Name=XKCD Reader
+Icon=xkcdreader
+Exec=xkcdreader
+StartupNotify=false
+StartupWMClass=xkcdreader
