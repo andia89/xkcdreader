@@ -12,7 +12,9 @@ xkcdviewer is a desktop XKCD webcomic viewer for Linux.
 ### Installation :
 
 Clone repository: `git clone https://github.com/wa4557/xkcdreader`,
-`cd ./xkcdreader`
+
+`cd ./xkcdreader`,
+
 run `python setup.py install`
 
 That's it
