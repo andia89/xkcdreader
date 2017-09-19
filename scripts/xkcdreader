@@ -212,7 +212,8 @@ class XKCDReader(Gtk.Application):
             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
              "Save", Gtk.ResponseType.OK))
         dialog.set_default_size(800, 400)
-
+        dialog.set_current_name(str(self.number) + '.png')
+        dialog.set_current_folder(GLib.get_user_special_dir(GLib.USER_DIRECTORY_PICTURES))
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             with open(dialog.get_filename(), 'wb') as f:
