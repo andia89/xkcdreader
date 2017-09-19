@@ -6,6 +6,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, Pango, GLib, Gio
 import requests
 import random
+import webbrowser
 
 
 class XKCDReader(Gtk.Application):
@@ -19,8 +20,8 @@ class XKCDReader(Gtk.Application):
         self.number = int(json["num"])
         self.title = json["title"]
         self.highest_number = self.number
-        img, self.hoover = self.parse_json(json)
-        self.pixbuf = self.get_image(img)
+        self.img_content, self.hoover = self.parse_json(json)
+        self.pixbuf = self.get_image(self.img_content)
         self.connect("activate", self.on_activate)
 
     def exit(self, *args):
@@ -50,6 +51,11 @@ class XKCDReader(Gtk.Application):
         buttonnext = Gtk.Button(None, image=Gtk.Image(stock=Gtk.STOCK_GO_FORWARD))
         buttonrandom = Gtk.Button("   Random", image=Gtk.Image(stock=Gtk.STOCK_REFRESH))
         buttonrandom.set_always_show_image(True)
+        buttondownload = Gtk.Button("   Download", image=Gtk.Image(stock=Gtk.STOCK_OPEN))
+        buttondownload.set_always_show_image(True)
+        buttonexplain = Gtk.Button("   Explain", image=Gtk.Image.new_from_icon_name('games-hint', Gtk.IconSize.BUTTON))
+        buttonexplain.set_always_show_image(True)
+
 
         #number entry_changed
         self.numberentry = Gtk.Entry()
@@ -93,6 +99,8 @@ class XKCDReader(Gtk.Application):
 
         hboxcancel = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         hboxcancel.set_margin_right(10)
+        hboxcancel.pack_start(buttondownload, False, False, 10)
+        hboxcancel.pack_start(buttonexplain, False, False, 0)
         hboxcancel.pack_end(buttonclose, False, False, 0)
         hboxcancel.set_margin_top(10)
         vboxall.pack_end(hboxcancel, False, False, 6)
@@ -111,6 +119,8 @@ class XKCDReader(Gtk.Application):
         buttonnext.connect("clicked", self.on_next_clicked)
         buttoncurrent.connect("clicked", self.on_current_clicked)
         buttonrandom.connect("clicked", self.on_random_clicked)
+        buttondownload.connect("clicked", self.on_download_clicked)
+        buttonexplain.connect("clicked", self.on_explain_clicked)
 
 
         self.win.show_all()
@@ -141,8 +151,8 @@ class XKCDReader(Gtk.Application):
         
     def change_image(self):
         json = self.get_number(self.number)
-        img, self.hoover = self.parse_json(json)
-        self.pixbuf = self.get_image(img)
+        self.img_content, self.hoover = self.parse_json(json)
+        self.pixbuf = self.get_image(self.img_content)
         pixbuf_height = self.pixbuf.get_height()
         pixbuf_width = self.pixbuf.get_width()
         off_height = 180
@@ -195,6 +205,24 @@ class XKCDReader(Gtk.Application):
         self.number = random.randint(1,win.highest_number)
         self.change_image()
         self.numberentry.set_text(str(self.number))
+
+    def on_download_clicked(self, widget):
+        dialog = Gtk.FileChooserDialog("Save as", self.win,
+            Gtk.FileChooserAction.SAVE,
+            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+             "Save", Gtk.ResponseType.OK))
+        dialog.set_default_size(800, 400)
+
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            with open(dialog.get_filename(), 'wb') as f:
+                f.write(self.img_content)
+        dialog.destroy()
+
+
+    def on_explain_clicked(self, widget):
+        url = 'http://www.explainxkcd.com/wiki/index.php/{}'.format(self.number)
+        webbrowser.open(url)
 
     def number_changed(self, widget):
         try:
