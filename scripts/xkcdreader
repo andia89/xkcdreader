@@ -14,7 +14,6 @@ class XKCDReader(Gtk.Application):
     def __init__(self):
         Gtk.Application.__init__(self,
                                  flags=Gio.ApplicationFlags.FLAGS_NONE)
-        GLib.set_application_name("xkcdreader")
         GLib.set_prgname('xkcdreader')
         json = self.get_current()
         self.number = int(json["num"])
@@ -47,8 +46,10 @@ class XKCDReader(Gtk.Application):
         #buttons
         buttoncurrent = Gtk.Button("   Current", image=Gtk.Image(stock=Gtk.STOCK_NEW))
         buttoncurrent.set_always_show_image (True)
+        buttonfirst = Gtk.Button(None, image=Gtk.Image(stock=Gtk.STOCK_GOTO_FIRST))
         buttonprev = Gtk.Button(None, image=Gtk.Image(stock=Gtk.STOCK_GO_BACK))
         buttonnext = Gtk.Button(None, image=Gtk.Image(stock=Gtk.STOCK_GO_FORWARD))
+        buttonlast = Gtk.Button(None, image=Gtk.Image(stock=Gtk.STOCK_GOTO_LAST))
         buttonrandom = Gtk.Button("   Random", image=Gtk.Image(stock=Gtk.STOCK_REFRESH))
         buttonrandom.set_always_show_image(True)
         buttondownload = Gtk.Button("   Download", image=Gtk.Image(stock=Gtk.STOCK_OPEN))
@@ -81,9 +82,11 @@ class XKCDReader(Gtk.Application):
 
         #pack buttons
         hboxbuttons.pack_start(buttoncurrent, False, False, 12)
+        hboxbuttons.pack_start(buttonfirst, False, False, 0)
         hboxbuttons.pack_start(buttonprev, False, False, 0)
         hboxbuttons.pack_start(self.numberentry, False, False, 2)
         hboxbuttons.pack_start(buttonnext, False, False, 0)
+        hboxbuttons.pack_start(buttonlast, False, False, 0)
         hboxbuttons.pack_start(buttonrandom, False, False, 12)
         #hboxbuttons.set_margin_left(2000)
         #hboxbuttons.set_margin_right(2000)
@@ -117,6 +120,8 @@ class XKCDReader(Gtk.Application):
         self.numberentry.connect("activate", self.number_changed)
         buttonprev.connect("clicked", self.on_prev_clicked)
         buttonnext.connect("clicked", self.on_next_clicked)
+        buttonfirst.connect("clicked", self.on_first_clicked)
+        buttonlast.connect("clicked", self.on_last_clicked)
         buttoncurrent.connect("clicked", self.on_current_clicked)
         buttonrandom.connect("clicked", self.on_random_clicked)
         buttondownload.connect("clicked", self.on_download_clicked)
@@ -189,6 +194,16 @@ class XKCDReader(Gtk.Application):
         self.change_image()
         self.numberentry.set_text(str(self.number))
 
+    def on_first_clicked(self, widget):
+        self.number = 1
+        self.change_image()
+        self.numberentry.set_text(str(self.number))
+
+    def on_last_clicked(self, widget):
+        self.number = self.highest_number
+        self.change_image()
+        self.numberentry.set_text(str(self.number))
+
     def on_prev_clicked(self, widget):
         self.number += -1
         if self.number == 0:
@@ -239,3 +254,4 @@ class XKCDReader(Gtk.Application):
 if __name__ == "__main__": 
     win = XKCDReader()
     win.run(None)
+    win.win.move(0,0)
