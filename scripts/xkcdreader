@@ -7,7 +7,11 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, Pango, GLib, Gio
 import requests
 import random
 import webbrowser
+import re
 
+
+def fix_unicode(string):
+    return re.sub(r'[\xc2-\xf4][\x80-\xbf]+', lambda m: m.group(0).encode('latin1').decode('utf8'), string)
 
 class XKCDReader(Gtk.Application):
 
@@ -17,7 +21,7 @@ class XKCDReader(Gtk.Application):
         GLib.set_prgname('xkcdreader')
         json = self.get_current()
         self.number = int(json["num"])
-        self.title = json["title"]
+        self.title = fix_unicode(json["title"])
         self.highest_number = self.number
         self.img_content, self.hoover = self.parse_json(json)
         self.pixbuf = self.get_image(self.img_content)
@@ -127,14 +131,13 @@ class XKCDReader(Gtk.Application):
         buttondownload.connect("clicked", self.on_download_clicked)
         buttonexplain.connect("clicked", self.on_explain_clicked)
 
-
         self.win.show_all()
         self.add_window(self.win)
 
     def parse_json(self, json):
         r = requests.get(json["img"])
         image = r.content
-        hoover_text = json["alt"]
+        hoover_text = fix_unicode(json["alt"])
         return image, hoover_text
 
     def get_current(self):
@@ -185,8 +188,6 @@ class XKCDReader(Gtk.Application):
         width = self.win.get_preferred_width().natural_width
         self.win.resize(width, height)
         
-
-
     def on_next_clicked(self, widget):
         self.number += 1
         if self.number > self.highest_number:
@@ -235,7 +236,6 @@ class XKCDReader(Gtk.Application):
                 f.write(self.img_content)
         dialog.destroy()
 
-
     def on_explain_clicked(self, widget):
         url = 'http://www.explainxkcd.com/wiki/index.php/{}'.format(self.number)
         webbrowser.open(url)
@@ -250,6 +250,7 @@ class XKCDReader(Gtk.Application):
             widget.set_text(str(val))
         except ValueError:
             widget.set_text('')
+            
 
 if __name__ == "__main__": 
     win = XKCDReader()
