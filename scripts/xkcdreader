@@ -11,7 +11,8 @@ import re
 
 
 def fix_unicode(string):
-    return re.sub(r'[\xc2-\xf4][\x80-\xbf]+', lambda m: m.group(0).encode('latin1').decode('utf8'), string)
+    #see here http://forums.xkcd.com/viewtopic.php?f=10&t=113522
+    return string.encode('latin1').decode('utf-8')
 
 class XKCDReader(Gtk.Application):
 
