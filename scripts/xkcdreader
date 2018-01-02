@@ -7,6 +7,7 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, Pango, GLib, Gio
 import requests
 import random
 import webbrowser
+import time
 
 
 class XKCDReader(Gtk.Application):
@@ -15,12 +16,22 @@ class XKCDReader(Gtk.Application):
         Gtk.Application.__init__(self,
                                  flags=Gio.ApplicationFlags.FLAGS_NONE)
         GLib.set_prgname('xkcdreader')
-        json = self.get_current()
-        self.number = int(json["num"])
-        self.title = json["title"]
+        try:
+            json = self.get_current()
+            self.number = int(json["num"])
+            self.title = json["title"]
+            self.img_content, self.hoover = self.parse_json(json)
+            self.pixbuf = self.get_image(self.img_content)
+            self.offline = False
+        except requests.ConnectionError:
+            self.offline = True
+            self.number = 1
+            self.title = "offline"
+            self.hoover = ""
+            theme = Gtk.IconTheme.get_default()
+            self.pixbuf = theme.load_icon(Gtk.STOCK_DIALOG_QUESTION, 512, 0)
         self.highest_number = self.number
-        self.img_content, self.hoover = self.parse_json(json)
-        self.pixbuf = self.get_image(self.img_content)
+        
         self.connect("activate", self.on_activate)
 
     def exit(self, *args):
@@ -31,7 +42,8 @@ class XKCDReader(Gtk.Application):
         self.win.set_title("XKCD Reader - {}".format(self.title))
         self.win.set_icon_name('xkcdreader')
         self.win.set_border_width(12)
-        self.win.set_position(Gtk.WindowPosition.CENTER)
+        self.win.set_gravity(Gdk.Gravity.NORTH_WEST)
+        self.win.set_position(Gtk.WindowPosition.CENTER )
         #self.win.set_resize_mode(Gtk.ResizeMode.IMMEDIATE);
 
 
@@ -127,7 +139,6 @@ class XKCDReader(Gtk.Application):
         buttondownload.connect("clicked", self.on_download_clicked)
         buttonexplain.connect("clicked", self.on_explain_clicked)
 
-
         self.win.show_all()
         self.add_window(self.win)
 
@@ -153,9 +164,21 @@ class XKCDReader(Gtk.Application):
         pixbuf = loader.get_pixbuf()
         loader.close()
         return pixbuf
+
+    def set_highest_number(self):
+        try:
+            json = self.get_current()
+            self.highest_number = int(json['num'])
+            return True
+        except requests.ConnectionError:
+            self.highest_number = 1
+            return False 
         
     def change_image(self):
-        json = self.get_number(self.number)
+        try:
+            json = self.get_number(self.number)
+        except requests.ConnectionError:
+            return
         self.img_content, self.hoover = self.parse_json(json)
         self.pixbuf = self.get_image(self.img_content)
         pixbuf_height = self.pixbuf.get_height()
@@ -184,42 +207,54 @@ class XKCDReader(Gtk.Application):
         height = self.win.get_preferred_height().natural_height
         width = self.win.get_preferred_width().natural_width
         self.win.resize(width, height)
-        
-
+        self.win.move(screen_width/2-width/2, screen_height/2-height/2)
 
     def on_next_clicked(self, widget):
-        self.number += 1
-        if self.number > self.highest_number:
-            self.number = self.highest_number
-        self.change_image()
-        self.numberentry.set_text(str(self.number))
+        online = self.set_highest_number()
+        if online:
+            self.number += 1
+            if self.number > self.highest_number:
+                self.number = self.highest_number
+            self.change_image()
+            self.numberentry.set_text(str(self.number))
+
 
     def on_first_clicked(self, widget):
-        self.number = 1
-        self.change_image()
-        self.numberentry.set_text(str(self.number))
+        online = self.set_highest_number()
+        if online:
+            self.number = 1
+            self.change_image()
+            self.numberentry.set_text(str(self.number))
 
     def on_last_clicked(self, widget):
+        online = self.set_highest_number()
         self.number = self.highest_number
-        self.change_image()
-        self.numberentry.set_text(str(self.number))
+        if online:
+            self.change_image()
+            self.numberentry.set_text(str(self.number))
 
     def on_prev_clicked(self, widget):
-        self.number += -1
-        if self.number == 0:
-            self.number = 1
-        self.change_image()
-        self.numberentry.set_text(str(self.number))
+        online = self.set_highest_number()
+        if online:
+            self.number += -1
+            if self.number == 0:
+                self.number = 1
+            self.change_image()
+            self.numberentry.set_text(str(self.number))
 
     def on_current_clicked(self, widget):
-        self.number = self.highest_number
-        self.change_image()
-        self.numberentry.set_text(str(self.number))
+        online = self.set_highest_number()
+        if online:
+            self.number = self.highest_number
+            self.change_image()
+            self.numberentry.set_text(str(self.number))
 
     def on_random_clicked(self, widget):
-        self.number = random.randint(1,win.highest_number)
-        self.change_image()
-        self.numberentry.set_text(str(self.number))
+        online = self.set_highest_number()
+        if online:
+            self.number = random.randint(1, self.highest_number)
+            self.change_image()
+            self.numberentry.set_text(str(self.number))
 
     def on_download_clicked(self, widget):
         dialog = Gtk.FileChooserDialog("Save as", self.win,
@@ -241,17 +276,22 @@ class XKCDReader(Gtk.Application):
         webbrowser.open(url)
 
     def number_changed(self, widget):
-        try:
-            val = int(widget.get_text())
-            if val > self.highest_number:
-                val = self.highest_number
-            self.number = val
-            self.change_image()
-            widget.set_text(str(val))
-        except ValueError:
-            widget.set_text('')
+        online = self.set_highest_number()
+        if online:
+            try:
+                val = int(widget.get_text())
+                if val > self.highest_number:
+                    val = self.highest_number
+                self.number = val
+                self.change_image()
+                widget.set_text(str(val))
+            except ValueError:
+                widget.set_text('')
+        else:
+            self.number = 1
+            widget.set_text(str(self.number))
+
 
 if __name__ == "__main__": 
     win = XKCDReader()
     win.run(None)
-    win.win.move(0,0)
